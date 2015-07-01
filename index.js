@@ -2,7 +2,11 @@ var debug = require('debug')('pg-bricks');
 var pf = require('point-free');
 var sql = require('sql-bricks-postgres');
 var pg = require('pg');
+var Query = require('pg/lib/query');
 
+try {
+    pg = pg.native;
+} catch (err) {}
 
 function _expectRow(res, callback) {
     if (res.rows.length === 0)
@@ -82,7 +86,7 @@ function instrument(client) {
     if (client !== Conf.prototype) {
         var oldQuery = client.query;
         client.query = function (query, params, callback) {
-            var query = query instanceof pg.Query ? query : new pg.Query(query, params, callback);
+            var query = query instanceof pg.Query ? query : new Query(query, params, callback);
             debug('%s %o', query.text, query.values);
             return oldQuery.call(client, query);
             return instrumentQuery(oldQuery.call(client, query));
@@ -128,7 +132,7 @@ Conf.prototype = {
     },
 
     query: function (query, params, callback) {
-        query = new pg.Query(query, params, callback);
+        query = new Query(query, params, callback);
         callback = query.callback;
 
         if (callback) {
